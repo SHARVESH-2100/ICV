@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>AI Product Authentication · Logo &amp; Packaging Recognition</title>
+<meta name="description" content="Team mini-project for Introduction to Computer Vision: authenticate product packaging using logo and packaging recognition, colour forensics, print-quality analysis, security QR codes and a learned Siamese visual signature.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236d5dfc'/><text x='50' y='64' font-size='36' font-family='Inter,sans-serif' font-weight='900' fill='white' text-anchor='middle'>AI</text></svg>">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="loading-bar" id="loadingBar"></div>
+
+<div class="app" id="app">
+
+  <!-- ── sidebar ───────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand__mark" aria-hidden="true">AI</div>
+      <div class="brand__name">Product Authentication<span>Logo &amp; Packaging Recognition</span></div>
+    </div>
+
+    <nav class="nav" aria-label="Main">
+      <div class="nav__label">Workspace</div>
+      <button class="nav__item" data-nav="verify" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Verify product
+      </button>
+      <button class="nav__item" data-nav="library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+        Product library
+      </button>
+      <button class="nav__item" data-nav="system">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        System status
+      </button>
+    </nav>
+
+    <div class="sidebar__foot">
+      <div class="status-card">
+        <div class="status-card__title">
+          <span class="pulse" id="modelPulse"></span> Engine
+        </div>
+        <div class="chip-row" style="margin-bottom:.6rem">
+          <span class="chip"><span class="chip__dot" style="background:var(--accent-2)"></span><span id="sideDevice">…</span></span>
+          <span class="chip"><span class="chip__dot" style="background:var(--info)"></span>Threshold <span id="sideThreshold">—</span></span>
+        </div>
+        <p id="sideModelText">Checking model checkpoint…</p>
+      </div>
+      <p class="field__hint" style="margin-top:.8rem" id="sideCheckpoint"></p>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ── main ──────────────────────────────────────────── -->
+  <div class="main">
+    <header class="topbar">
+      <button class="burger" id="burger" aria-label="Toggle navigation" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div>
+        <h1 class="topbar__title" id="viewTitle">Verify a product</h1>
+        <div class="topbar__sub" id="viewSub">Choose the product and upload or capture a photo to authenticate it.</div>
+      </div>
+      <div class="topbar__right">
+        <span class="chip hidden" id="topChips"><span class="chip__dot" style="background:var(--accent-2)"></span><span id="topChipText">—</span></span>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ── view: verify ─────────────────────────────── -->
+      <section class="view" id="view-verify">
+        <div class="hero">
+          <div class="hero__tag">Introduction to Computer Vision · Team Mini Project</div>
+          <div class="hero__title">AI Product <span class="grad">Authentication</span></div>
+          <p class="hero__sub">
+            Authenticate product packaging using logo and packaging recognition — verifying the package
+            against an authenticated reference library with logo/print alignment, colour forensics,
+            physical print-quality analysis, embedded security QR codes and a learned Siamese visual
+            signature.
+          </p>
+          <div class="chip-row" id="heroChips"></div>
+        </div>
+
+        <div class="sec">
+          <div class="sec__title">Verify a product</div>
+          <div class="sec__sub">Choose the product and upload or capture a photo to authenticate it.</div>
+        </div>
+
+        <div class="grid grid--2">
+          <div class="card card--pad">
+            <div class="lbl"><span class="chip__dot" style="background:var(--info)"></span> Step 1 · Target</div>
+            <div class="field">
+              <label class="field__label" for="productSelect">Product</label>
+              <select class="select" id="productSelect"></select>
+              <span class="field__hint" id="productHint">—</span>
+            </div>
+            <div class="empty" id="noProducts" hidden>
+              No reference products yet. Add reference images in the <b>Product library</b> tab first.
+            </div>
+          </div>
+
+          <div class="card card--pad">
+            <div class="lbl"><span class="chip__dot" style="background:var(--accent-2)"></span> Step 2 · Evidence</div>
+            <div class="seg" role="tablist" aria-label="Image source" style="margin-bottom:.9rem">
+              <button class="seg__btn" role="tab" aria-selected="true" data-source="upload">Upload</button>
+              <button class="seg__btn" role="tab" aria-selected="false" data-source="camera">Camera</button>
+            </div>
+
+            <div id="uploadPane">
+              <label class="drop" id="drop" for="queryFile">
+                <div class="drop__icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v13"/></svg>
+                </div>
+                <div class="drop__title">Drop a photo, or click to browse</div>
+                <div class="drop__hint">JPG, PNG, WEBP or BMP · capture the full front panel</div>
+                <input type="file" id="queryFile" accept="image/jpeg,image/png,image/webp,image/bmp">
+              </label>
+              <div class="thumbs" id="queryThumbs"></div>
+            </div>
+
+            <div id="cameraPane" hidden>
+              <div class="camera">
+                <video id="camVideo" playsinline muted></video>
+                <div class="camera__actions">
+                  <button class="btn btn--primary btn--sm" id="camStart">Start camera</button>
+                  <button class="btn btn--sm" id="camSnap" disabled>Capture</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn--primary btn--block" id="runBtn" style="margin-top:1rem" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              Run verification
+            </button>
+          </div>
+        </div>
+
+        <!-- results -->
+        <div id="results" hidden>
+          <div class="sec">
+            <div class="sec__title">Verdict</div>
+            <div class="sec__sub">Fused decision across every available signal.</div>
+          </div>
+          <div id="banner"></div>
+          <div class="chip-row" id="alignChips"></div>
+
+          <div class="grid grid--2" style="margin-top:1.2rem">
+            <div class="card" style="display:grid;place-items:center">
+              <div class="lbl" style="align-self:start"><span class="chip__dot" style="background:var(--accent-2)"></span> Authenticity score</div>
+              <div class="ring" id="scoreRing"></div>
+              <div class="kv" style="width:100%;margin-top:1rem"><span>Decision threshold</span><b id="ringThreshold">—</b></div>
+            </div>
+            <div class="grid" style="gap:1rem;align-content:start">
+              <div class="card stat"><div class="stat__label">Best reference match</div><div class="stat__value" id="statRef">—</div></div>
+              <div class="card stat"><div class="stat__label">Confidence</div><div class="stat__value" id="statConf">—</div></div>
+              <div class="card stat"><div class="stat__label">Signals evaluated</div><div class="stat__value" id="statCount">—</div></div>
+            </div>
+          </div>
+
+          <div class="sec">
+            <div class="sec__title">Visual evidence</div>
+            <div class="sec__sub">Reference versus query, plus the suspicious-region overlay after alignment.</div>
+          </div>
+          <div class="grid grid--trio" id="evidence"></div>
+
+          <div class="sec">
+            <div class="sec__title">Signal breakdown</div>
+            <div class="sec__sub">Per-signal match score, weighted by each signal's contribution to the final verdict. Green ≥ 70 · amber 40–69 · red &lt; 40.</div>
+          </div>
+          <div class="signals" id="signals"></div>
+
+          <div class="sec" id="reasonsSec" hidden>
+            <div class="sec__title">Why this verdict</div>
+            <div class="sec__sub">Signals that weakened (or confirmed) the authenticity decision.</div>
+          </div>
+          <div class="chip-row" id="reasons"></div>
+        </div>
+      </section>
+
+      <!-- ── view: library ────────────────────────────── -->
+      <section class="view" id="view-library" hidden>
+        <div class="sec" style="margin-top:0">
+          <div class="sec__title">Product library</div>
+          <div class="sec__sub">Manage the authenticated reference imagery used for verification.</div>
+        </div>
+
+        <div class="grid grid--2">
+          <div class="card card--pad">
+            <div class="lbl"><span class="chip__dot" style="background:var(--ok)"></span> Add reference photos</div>
+            <div class="field">
+              <label class="field__label" for="libName">Product name</label>
+              <input class="input" id="libName" placeholder="e.g. Coca-Cola 330ml" autocomplete="off">
+            </div>
+            <label class="drop" for="libFiles" style="padding:1.5rem 1.2rem">
+              <div class="drop__title">Select reference images</div>
+              <div class="drop__hint">Several angles improve robustness</div>
+              <input type="file" id="libFiles" multiple accept="image/jpeg,image/png,image/webp,image/bmp">
+            </label>
+            <div class="thumbs" id="libThumbs"></div>
+            <button class="btn btn--primary btn--block" id="libAdd" style="margin-top:1rem" disabled>Add to library</button>
+          </div>
+
+          <div class="card card--pad">
+            <div class="lbl"><span class="chip__dot" style="background:var(--info)"></span> Library summary</div>
+            <div class="kv"><span>Products</span><b id="libCountProducts">0</b></div>
+            <div class="kv"><span>Reference images</span><b id="libCountImages">0</b></div>
+            <div class="kv"><span>Storage</span><b id="libPath">—</b></div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec__title">Reference library</div>
+          <div class="sec__sub">Click any thumbnail to inspect it at full size.</div>
+        </div>
+        <div class="pgrid" id="libraryGrid"></div>
+        <div class="empty" id="libraryEmpty" hidden>The library is empty.</div>
+      </section>
+
+      <!-- ── view: system ─────────────────────────────── -->
+      <section class="view" id="view-system" hidden>
+        <div class="sec" style="margin-top:0">
+          <div class="sec__title">Model status</div>
+          <div class="sec__sub">Runtime configuration for the authentication engine.</div>
+        </div>
+        <div class="grid grid--3" id="systemTiles"></div>
+
+        <div class="sec">
+          <div class="sec__title">Signal weights</div>
+          <div class="sec__sub">Contribution of each signal to the fused authenticity score.</div>
+        </div>
+        <div class="card" style="padding:.5rem 1.25rem">
+          <table class="table">
+            <thead><tr><th>Signal</th><th>Label</th><th style="text-align:right">Weight</th></tr></thead>
+            <tbody id="weightTable"></tbody>
+          </table>
+        </div>
+
+        <div class="sec">
+          <div class="sec__title">Configuration</div>
+          <div class="sec__sub">Immutable pipeline parameters.</div>
+        </div>
+        <div class="grid grid--2">
+          <div class="card card--pad"><div class="kv" id="configA"></div></div>
+          <div class="card card--pad"><div class="kv" id="configB"></div></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
